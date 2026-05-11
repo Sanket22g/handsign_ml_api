@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ISL Smart Glove Debugger</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f4f9; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 950px; width: 100%; display: flex; gap: 20px; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex: 1; }
+        h1 { margin-top: 0; color: #222; font-size: 1.5em; width: 100%; max-width: 950px; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { margin-top: 0; color: #444; font-size: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .sensor-list { list-style: none; padding: 0; margin: 0; max-height: 500px; overflow-y: auto; padding-right: 10px; }
+        .sensor-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f9f9f9; }
+        .sensor-item label { width: 100px; font-weight: bold; font-size: 0.85em; color: #555; }
+        .sensor-item input[type=range] { flex: 1; margin: 0 10px; }
+        .sensor-item span { width: 40px; text-align: right; font-family: monospace; font-size: 0.9em; background: #eee; padding: 2px 5px; border-radius: 3px; }
+        .array-view { background: #1e1e1e; color: #4af626; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 0.9em; word-wrap: break-word; line-height: 1.6; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .btn { background: #007bff; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1em; width: 100%; margin-bottom: 10px; transition: background 0.2s; }
+        .btn:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .result-box { text-align: center; margin-top: 30px; border-top: 2px dashed #eee; padding-top: 20px; }
+        .result-box h3 { margin: 0; font-size: 0.9em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .word { font-size: 3em; font-weight: bold; color: #28a745; margin: 10px 0; }
+        .buffer { background: #e9ecef; padding: 15px; border-radius: 6px; min-height: 24px; font-size: 1.1em; color: #333; margin-top: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<h1>ISL Smart Glove Debugger</h1>
+
+<div class="container">
+    <div class="panel">
+        <h2>Sensor List Controls</h2>
+        <ul class="sensor-list" id="sensorList"></ul>
+    </div>
+    
+    <div class="panel">
+        <h2>Raw Features Array</h2>
+        <div class="array-view" id="arrayView">[0.0, 0.0, ...]</div>
+        
+        <button class="btn" onclick="makePrediction()">Send to API / Predict</button>
+        <button class="btn btn-secondary" onclick="loadExampleData()">Generate Random Noise</button>
+        <button class="btn btn-danger" onclick="resetData()">Reset to Zeros</button>
+
+        <div class="result-box">
+            <h3>Predicted Gesture</h3>
+            <div class="word" id="predictedWord">--</div>
+            
+            <h3 style="margin-top: 20px;">Sentence Buffer</h3>
+            <div class="buffer" id="sentenceBuffer">...</div>
+            <button class="btn btn-danger" style="margin-top: 10px;" onclick="clearBuffer()">Clear Sentence</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const featureNames = [
+        "Flex 1", "Flex 2", "Flex 3", "Flex 4", "Flex 5",
+        "Flex 6", "Flex 7", "Flex 8", "Flex 9", "Flex 10",
+        "MPU1 Ac_X", "MPU1 Ac_Y", "MPU1 Ac_Z",
+        "MPU1 Gy_X", "MPU1 Gy_Y", "MPU1 Gy_Z",
+        "MPU2 Ac_X", "MPU2 Ac_Y", "MPU2 Ac_Z",
+        "MPU2 Gy_X", "MPU2 Gy_Y", "MPU2 Gy_Z"
+    ];
+
+    let sensors = new Array(22).fill(0.0);
+    let wordBuffer = [];
+    const listEl = document.getElementById('sensorList');
+    const arrayView = document.getElementById('arrayView');
+
+    function renderList() {
+        listEl.innerHTML = '';
+        featureNames.forEach((name, i) => {
+            const li = document.createElement('li');
+            li.className = 'sensor-item';
+            // Flex sensors typically map from 0 to 90 degrees or arbitrary voltage. 
+            // MPUs map from -2g to +2g or similar. We use -10 to +10 as a general sandbox.
+            li.innerHTML = `
+                <label>${name}</label>
+                <input type="range" min="-10" max="10" step="0.1" value="${sensors[i]}" oninput="updateSensor(${i}, this.value)">
+                <span id="val${i}">${sensors[i].toFixed(1)}</span>
+            `;
+            listEl.appendChild(li);
+        });
+        updateArrayView();
+    }
+
+    function updateSensor(i, val) {
+        sensors[i] = parseFloat(val);
+        document.getElementById(`val${i}`).innerText = sensors[i].toFixed(1);
+        updateArrayView();
+    }
+
+    function updateArrayView() {
+        arrayView.innerText = '[\n  ' + sensors.map(s => s.toFixed(1)).join(', ') + '\n]';
+    }
+
+    function loadExampleData() {
+        // Generates random noise to show how the array updates
+        for (let i = 0; i < 22; i++) {
+            sensors[i] = parseFloat((Math.random() * 4 - 2).toFixed(1));
+        }
+        renderList();
+    }
+
+    function resetData() {
+        sensors = new Array(22).fill(0.0);
+        renderList();
+    }
+
+    function clearBuffer() {
+        wordBuffer = [];
+        document.getElementById('sentenceBuffer').innerText = '...';
+        document.getElementById('predictedWord').innerText = '--';
+    }
+
+    async function makePrediction() {
+        const btn = document.querySelector('.btn');
+        const oldText = btn.innerText;
+        btn.innerText = 'Predicting...';
+        
+        try {
+            const response = await fetch('http://127.0.0.1:8000/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ features: sensors, word_buffer: wordBuffer })
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'API Error');
+            }
+            
+            const data = await response.json();
+            document.getElementById('predictedWord').innerText = data.predicted_word;
+            wordBuffer = data.word_buffer;
+            document.getElementById('sentenceBuffer').innerText = wordBuffer.join(' ') || '...';
+        } catch (e) {
+            alert('Failed: ' + e.message);
+        } finally {
+            btn.innerText = oldText;
+        }
+    }
+
+    // Initialize UI on load
+    renderList();
+</script>
+
+</body>
+</html>
