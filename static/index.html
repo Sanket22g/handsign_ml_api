@@ -79,7 +79,6 @@
                 <option value="upar">👆 Upar (Up)</option>
                 <option value="neeche">👇 Neeche (Down)</option>
             </select>
-            <button class="btn btn-secondary" style="margin-bottom: 0; background: #28a745; width: auto;" onclick="animateSign()">Animate</button>
         </div>
         
         <button class="btn" onclick="makePrediction()">Send to API / Predict</button>
@@ -217,37 +216,6 @@
         "neeche": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.98, 0.0, -15.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0]
     };
 
-    function animateSign() {
-        const signKey = document.getElementById('signSelect').value;
-        const target = preDefinedSigns[signKey];
-        if (!target) return;
-
-        const steps = 20;
-        let currentStep = 0;
-        const startValues = [...sensors];
-
-        const interval = setInterval(() => {
-            currentStep++;
-            const progress = currentStep / steps;
-
-            for (let i = 0; i < 22; i++) {
-                const newVal = startValues[i] + (target[i] - startValues[i]) * progress;
-                sensors[i] = parseFloat(newVal.toFixed(2));
-                
-                const slider = document.getElementById(`slider${i}`);
-                if (slider) slider.value = sensors[i];
-                
-                const span = document.getElementById(`val${i}`);
-                if (span) span.innerText = sensors[i].toFixed(1);
-            }
-            updateArrayView();
-
-            if (currentStep >= steps) {
-                clearInterval(interval);
-                // User must click Predict manually
-            }
-        }, 25); // 500ms total duration
-    }
 
     function clearBuffer() {
         wordBuffer = [];
