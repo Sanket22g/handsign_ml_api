@@ -40,6 +40,47 @@
     <div class="panel">
         <h2>Raw Features Array</h2>
         <div class="array-view" id="arrayView">[0.0, 0.0, ...]</div>
+
+        <h2 style="margin-top: 10px;">Simulate ISL Signs (From Dataset)</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <select id="signSelect" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1em;">
+                <option value="namaskar">🙏 Namaskar (Hello)</option>
+                <option value="alvida">👋 Alvida (Goodbye)</option>
+                <option value="shukriya">🤝 Shukriya (Thank you)</option>
+                <option value="maafi">🙏 Maafi (Sorry)</option>
+                <option value="haan">✊ Haan (Yes)</option>
+                <option value="nahi">🤚 Nahi (No)</option>
+                <option value="madad">🆘 Madad (Help)</option>
+                <option value="doctor">🚑 Doctor</option>
+                <option value="dard">😖 Dard (Pain)</option>
+                <option value="call">📞 Call</option>
+                <option value="aag">🔥 Aag (Fire)</option>
+                <option value="accident">🚗 Accident</option>
+                <option value="chor">🦹 Chor (Thief)</option>
+                <option value="rona">😢 Rona (Sad/Crying)</option>
+                <option value="paani">💧 Paani (Water)</option>
+                <option value="khana">🍽️ Khana (Food)</option>
+                <option value="ruko">🛑 Ruko (Stop)</option>
+                <option value="aur">➕ Aur (More)</option>
+                <option value="main">👤 Main (I/Me)</option>
+                <option value="tum">👉 Tum (You)</option>
+                <option value="ghar">👪 Ghar (Home)</option>
+                <option value="school">🏫 School</option>
+                <option value="khushi">😊 Khushi (Happy)</option>
+                <option value="dukh">😢 Dukh (Sad)</option>
+                <option value="gussa">😡 Gussa (Angry)</option>
+                <option value="neend">😴 Neend (Sleep)</option>
+                <option value="ek">☝️ Ek (One)</option>
+                <option value="do">✌️ Do (Two)</option>
+                <option value="paanch">🖐️ Paanch (Five)</option>
+                <option value="kya">❓ Kya (What)</option>
+                <option value="kahan">📍 Kahan (Where)</option>
+                <option value="dekhna">👁️ Dekhna (See/Look)</option>
+                <option value="upar">👆 Upar (Up)</option>
+                <option value="neeche">👇 Neeche (Down)</option>
+            </select>
+            <button class="btn btn-secondary" style="margin-bottom: 0; background: #28a745; width: auto;" onclick="animateSign()">Animate</button>
+        </div>
         
         <button class="btn" onclick="makePrediction()">Send to API / Predict</button>
         <button class="btn btn-secondary" onclick="loadExampleData()">Generate Random Noise</button>
@@ -80,7 +121,7 @@
             // MPUs map from -2g to +2g or similar. We use -10 to +10 as a general sandbox.
             li.innerHTML = `
                 <label>${name}</label>
-                <input type="range" min="-10" max="10" step="0.1" value="${sensors[i]}" oninput="updateSensor(${i}, this.value)">
+                <input type="range" id="slider${i}" min="-10" max="10" step="0.1" value="${sensors[i]}" oninput="updateSensor(${i}, this.value)">
                 <span id="val${i}">${sensors[i].toFixed(1)}</span>
             `;
             listEl.appendChild(li);
@@ -109,6 +150,75 @@
     function resetData() {
         sensors = new Array(22).fill(0.0);
         renderList();
+    }
+
+    const preDefinedSigns = {
+        "namaskar": [0.10, 0.10, 0.10, 0.10, 0.10, 0.00, 0.80, 0.60, 0.0, 0.0, 0.0, 0.10, 0.10, 0.10, 0.10, 0.10, 0.00, 0.80, 0.60, 0.0, 0.0, 0.0],
+        "alvida": [0.10, 0.10, 0.10, 0.10, 0.10, 0.85, 0.00, 0.50, 0.0, 0.0, 20.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "shukriya": [0.10, 0.10, 0.10, 0.10, 0.10, 0.30, 0.80, 0.50, 0.0, 15.0, 5.0, 0.55, 0.55, 0.55, 0.55, 0.55, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "maafi": [0.85, 0.85, 0.85, 0.85, 0.85, -0.40, 0.00, 0.90, 3.0, 3.0, 10.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "haan": [0.90, 0.90, 0.90, 0.90, 0.90, 0.00, 0.50, 0.85, 0.0, 20.0, 0.0, 0.65, 0.65, 0.65, 0.65, 0.65, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "nahi": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.95, 0.0, 0.0, 25.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "madad": [0.10, 0.85, 0.85, 0.85, 0.85, 0.00, 0.60, 0.80, 0.0, 10.0, 5.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "doctor": [0.50, 0.10, 0.85, 0.85, 0.85, 0.00, 0.30, 0.95, 0.0, 5.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "dard": [0.60, 0.60, 0.60, 0.60, 0.60, -0.50, 0.00, 0.85, 10.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, -0.50, 0.00, 0.85, 10.0, 0.0, 0.0],
+        "call": [0.10, 0.85, 0.85, 0.85, 0.10, 0.50, 0.80, 0.30, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "aag": [0.60, 0.55, 0.55, 0.55, 0.55, 0.10, 0.10, 0.98, 0.0, 0.0, 18.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "accident": [0.85, 0.85, 0.85, 0.85, 0.85, 0.00, 0.10, 0.99, 15.0, 0.0, 0.0, 0.85, 0.85, 0.85, 0.85, 0.85, 0.00, 0.10, 0.99, -15.0, 0.0, 0.0],
+        "chor": [0.85, 0.55, 0.90, 0.90, 0.90, 0.00, 0.00, 0.95, 0.0, 0.0, 20.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "rona": [0.85, 0.10, 0.90, 0.90, 0.90, 0.40, 0.90, 0.15, 0.0, -15.0, 0.0, 0.85, 0.10, 0.90, 0.90, 0.90, 0.40, 0.90, 0.15, 0.0, -15.0, 0.0],
+        "paani": [0.90, 0.10, 0.10, 0.10, 0.90, 0.30, 0.80, 0.50, 0.0, -8.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "khana": [0.40, 0.40, 0.40, 0.40, 0.40, 0.00, 0.75, 0.65, 0.0, -8.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "ruko": [0.10, 0.10, 0.10, 0.10, 0.10, 0.85, 0.00, 0.50, 20.0, 5.0, 0.0, 0.10, 0.10, 0.10, 0.10, 0.10, 0.80, 0.00, 0.55, 0.0, 0.0, 0.0],
+        "aur": [0.40, 0.40, 0.40, 0.40, 0.40, 0.00, 0.20, 0.95, 5.0, 5.0, 0.0, 0.40, 0.40, 0.40, 0.40, 0.40, 0.00, 0.20, 0.95, 5.0, 5.0, 0.0],
+        "main": [0.85, 0.10, 0.90, 0.90, 0.90, -0.60, 0.00, 0.80, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "tum": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.95, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "ghar": [0.10, 0.10, 0.10, 0.10, 0.10, 0.00, 0.95, 0.30, 0.0, 0.0, 0.0, 0.10, 0.10, 0.10, 0.10, 0.10, 0.00, 0.95, 0.30, 0.0, 0.0, 0.0],
+        "school": [0.10, 0.10, 0.10, 0.10, 0.10, 0.00, 0.10, 0.99, 0.0, -12.0, 0.0, 0.10, 0.10, 0.10, 0.10, 0.10, 0.00, 0.10, 0.99, 0.0, 0.0, 0.0],
+        "khushi": [0.10, 0.10, 0.10, 0.10, 0.10, -0.50, 0.00, 0.87, 0.0, 12.0, 0.0, 0.10, 0.10, 0.10, 0.10, 0.10, -0.50, 0.00, 0.87, 0.0, 12.0, 0.0],
+        "dukh": [0.10, 0.10, 0.10, 0.10, 0.10, 0.40, 0.90, 0.15, 0.0, -10.0, 0.0, 0.10, 0.10, 0.10, 0.10, 0.10, 0.40, 0.90, 0.15, 0.0, -10.0, 0.0],
+        "gussa": [0.70, 0.70, 0.70, 0.70, 0.70, 0.00, 0.00, 0.98, 0.0, -18.0, 0.0, 0.70, 0.70, 0.70, 0.70, 0.70, 0.00, 0.00, 0.98, 0.0, -18.0, 0.0],
+        "neend": [0.10, 0.10, 0.10, 0.10, 0.10, 0.70, 0.70, 0.15, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "ek": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.98, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "do": [0.85, 0.10, 0.10, 0.90, 0.90, 0.00, 0.00, 0.98, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "paanch": [0.10, 0.10, 0.10, 0.10, 0.10, 0.85, 0.00, 0.53, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "kya": [0.20, 0.20, 0.20, 0.20, 0.20, 0.00, 0.00, 0.95, 0.0, 0.0, 15.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "kahan": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.95, 0.0, 0.0, 18.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "dekhna": [0.85, 0.10, 0.10, 0.90, 0.90, 0.40, 0.80, 0.45, 0.0, 0.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "upar": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.98, 0.0, 15.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0],
+        "neeche": [0.85, 0.10, 0.90, 0.90, 0.90, 0.00, 0.00, 0.98, 0.0, -15.0, 0.0, 0.60, 0.60, 0.60, 0.60, 0.60, 0.00, 0.00, 1.00, 0.0, 0.0, 0.0]
+    };
+
+    function animateSign() {
+        const signKey = document.getElementById('signSelect').value;
+        const target = preDefinedSigns[signKey];
+        if (!target) return;
+
+        const steps = 20;
+        let currentStep = 0;
+        const startValues = [...sensors];
+
+        const interval = setInterval(() => {
+            currentStep++;
+            const progress = currentStep / steps;
+
+            for (let i = 0; i < 22; i++) {
+                const newVal = startValues[i] + (target[i] - startValues[i]) * progress;
+                sensors[i] = parseFloat(newVal.toFixed(2));
+                
+                const slider = document.getElementById(`slider${i}`);
+                if (slider) slider.value = sensors[i];
+                
+                const span = document.getElementById(`val${i}`);
+                if (span) span.innerText = sensors[i].toFixed(1);
+            }
+            updateArrayView();
+
+            if (currentStep >= steps) {
+                clearInterval(interval);
+                makePrediction(); // Trigger API once animation finishes
+            }
+        }, 25); // 500ms total duration
     }
 
     function clearBuffer() {
