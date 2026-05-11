@@ -99,12 +99,12 @@
 
 <script>
     const featureNames = [
-        "Flex 1", "Flex 2", "Flex 3", "Flex 4", "Flex 5",
-        "Flex 6", "Flex 7", "Flex 8", "Flex 9", "Flex 10",
-        "MPU1 Ac_X", "MPU1 Ac_Y", "MPU1 Ac_Z",
-        "MPU1 Gy_X", "MPU1 Gy_Y", "MPU1 Gy_Z",
-        "MPU2 Ac_X", "MPU2 Ac_Y", "MPU2 Ac_Z",
-        "MPU2 Gy_X", "MPU2 Gy_Y", "MPU2 Gy_Z"
+        "R Flex Thumb", "R Flex Index", "R Flex Middle", "R Flex Ring", "R Flex Pinky",
+        "R MPU Ac_X", "R MPU Ac_Y", "R MPU Ac_Z",
+        "R MPU Gy_X", "R MPU Gy_Y", "R MPU Gy_Z",
+        "L Flex Thumb", "L Flex Index", "L Flex Middle", "L Flex Ring", "L Flex Pinky",
+        "L MPU Ac_X", "L MPU Ac_Y", "L MPU Ac_Z",
+        "L MPU Gy_X", "L MPU Gy_Y", "L MPU Gy_Z"
     ];
 
     let sensors = new Array(22).fill(0.0);
@@ -149,9 +149,21 @@
         document.getElementById('signSelect').value = randomKey;
 
         for (let i = 0; i < 22; i++) {
-            // Add realistic noise to simulate an imperfect human gesture
-            // Flex sensors (0-9) get +/- 0.1 noise, MPUs (10-21) get +/- 1.0 noise
-            let noiseAmt = (i < 10) ? 0.1 : 1.0; 
+            // Apply targeted realistic noise based on the exact sensor type
+            let noiseAmt = 0.0;
+            // Flex Sensors (Indices 0-4, 11-15) -> Low noise (0.05)
+            if ((i >= 0 && i <= 4) || (i >= 11 && i <= 15)) {
+                noiseAmt = 0.05;
+            } 
+            // Accel Sensors (Indices 5-7, 16-18) -> Moderate noise (0.1)
+            else if ((i >= 5 && i <= 7) || (i >= 16 && i <= 18)) {
+                noiseAmt = 0.1;
+            }
+            // Gyro Sensors (Indices 8-10, 19-21) -> High noise (2.0)
+            else {
+                noiseAmt = 2.0;
+            }
+            
             let noise = (Math.random() * (noiseAmt * 2)) - noiseAmt;
             
             sensors[i] = parseFloat((baseValues[i] + noise).toFixed(2));
