@@ -41,45 +41,7 @@
         <h2>Raw Features Array</h2>
         <div class="array-view" id="arrayView">[0.0, 0.0, ...]</div>
 
-        <h2 style="margin-top: 10px;">Simulate ISL Signs (From Dataset)</h2>
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <select id="signSelect" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1em;">
-                <option value="namaskar">🙏 Namaskar (Hello)</option>
-                <option value="alvida">👋 Alvida (Goodbye)</option>
-                <option value="shukriya">🤝 Shukriya (Thank you)</option>
-                <option value="maafi">🙏 Maafi (Sorry)</option>
-                <option value="haan">✊ Haan (Yes)</option>
-                <option value="nahi">🤚 Nahi (No)</option>
-                <option value="madad">🆘 Madad (Help)</option>
-                <option value="doctor">🚑 Doctor</option>
-                <option value="dard">😖 Dard (Pain)</option>
-                <option value="call">📞 Call</option>
-                <option value="aag">🔥 Aag (Fire)</option>
-                <option value="accident">🚗 Accident</option>
-                <option value="chor">🦹 Chor (Thief)</option>
-                <option value="rona">😢 Rona (Sad/Crying)</option>
-                <option value="paani">💧 Paani (Water)</option>
-                <option value="khana">🍽️ Khana (Food)</option>
-                <option value="ruko">🛑 Ruko (Stop)</option>
-                <option value="aur">➕ Aur (More)</option>
-                <option value="main">👤 Main (I/Me)</option>
-                <option value="tum">👉 Tum (You)</option>
-                <option value="ghar">👪 Ghar (Home)</option>
-                <option value="school">🏫 School</option>
-                <option value="khushi">😊 Khushi (Happy)</option>
-                <option value="dukh">😢 Dukh (Sad)</option>
-                <option value="gussa">😡 Gussa (Angry)</option>
-                <option value="neend">😴 Neend (Sleep)</option>
-                <option value="ek">☝️ Ek (One)</option>
-                <option value="do">✌️ Do (Two)</option>
-                <option value="paanch">🖐️ Paanch (Five)</option>
-                <option value="kya">❓ Kya (What)</option>
-                <option value="kahan">📍 Kahan (Where)</option>
-                <option value="dekhna">👁️ Dekhna (See/Look)</option>
-                <option value="upar">👆 Upar (Up)</option>
-                <option value="neeche">👇 Neeche (Down)</option>
-            </select>
-        </div>
+
         
         <button class="btn" onclick="makePrediction()">Send to API / Predict</button>
         <button class="btn btn-secondary" onclick="loadExampleData()">Generate Random Valid Gesture</button>
@@ -144,8 +106,7 @@
         const randomKey = signKeys[Math.floor(Math.random() * signKeys.length)];
         const baseValues = preDefinedSigns[randomKey];
 
-        // Update the dropdown to show what was picked
-        document.getElementById('signSelect').value = randomKey;
+
 
         for (let i = 0; i < 22; i++) {
             // Apply correct noise scales based on sensor type (matching your Python dictionary)
