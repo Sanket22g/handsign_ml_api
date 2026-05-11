@@ -25,6 +25,11 @@
         .result-box h3 { margin: 0; font-size: 0.9em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         .word { font-size: 3em; font-weight: bold; color: #28a745; margin: 10px 0; }
         .buffer { background: #e9ecef; padding: 15px; border-radius: 6px; min-height: 24px; font-size: 1.1em; color: #333; margin-top: 10px; border: 1px solid #ddd; }
+        .calibration-panel { background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; margin-top: 20px; font-size: 0.9em; }
+        .calibration-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .calibration-item { display: flex; flex-direction: column; }
+        .calibration-item label { font-weight: bold; margin-bottom: 5px; color: #856404; }
+        .calibration-item input { padding: 5px; border-radius: 4px; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
@@ -46,6 +51,24 @@
         <button class="btn" onclick="makePrediction()">Send to API / Predict</button>
         <button class="btn btn-secondary" onclick="loadExampleData()">Generate Random Valid Gesture</button>
         <button class="btn btn-danger" onclick="resetData()">Reset to Zeros</button>
+
+        <div class="calibration-panel">
+            <h3 style="margin:0; font-size: 1em; color: #856404;">Calibration / Scaling Settings</h3>
+            <p style="margin: 5px 0; color: #666;">Map "real-life" big values to model's "small" expected range.</p>
+            <div class="calibration-grid">
+                <div class="calibration-item">
+                    <label>Flex Divisor</label>
+                    <input type="number" id="flexDiv" value="1" step="1" oninput="updateCalibration()">
+                </div>
+                <div class="calibration-item">
+                    <label>MPU Divisor</label>
+                    <input type="number" id="mpuDiv" value="1" step="1" oninput="updateCalibration()">
+                </div>
+            </div>
+            <p style="margin-top: 10px; font-size: 0.85em; color: #856404;">
+                <i>Model input = UI Value / Divisor</i>
+            </p>
+        </div>
 
         <div class="result-box">
             <h3>Predicted Gesture</h3>
@@ -69,20 +92,36 @@
     ];
 
     let sensors = new Array(22).fill(0.0);
+    let calibration = { flex: 1.0, mpu: 1.0 };
     let wordBuffer = [];
     const listEl = document.getElementById('sensorList');
     const arrayView = document.getElementById('arrayView');
+
+    function updateCalibration() {
+        calibration.flex = parseFloat(document.getElementById('flexDiv').value) || 1.0;
+        calibration.mpu = parseFloat(document.getElementById('mpuDiv').value) || 1.0;
+        updateArrayView('internal');
+    }
+
+    function getNormalizedSensors() {
+        return sensors.map((val, i) => {
+            const div = i < 10 ? calibration.flex : calibration.mpu;
+            return val / div;
+        });
+    }
 
     function renderList() {
         listEl.innerHTML = '';
         featureNames.forEach((name, i) => {
             const li = document.createElement('li');
             li.className = 'sensor-item';
-            // Flex sensors typically map from 0 to 90 degrees or arbitrary voltage. 
-            // MPUs map from -2g to +2g or similar. We use -30 to +30 as a general sandbox.
+            // Set range based on sensor type. Flex often 0-1024, MPU often -32768 to 32767.
+            // We'll use -1000 to 1000 as a default "real life" sandbox.
+            const min = i < 10 ? 0 : -1000;
+            const max = 1000;
             li.innerHTML = `
                 <label>${name}</label>
-                <input type="range" id="slider${i}" min="-30" max="30" step="0.01" value="${sensors[i]}" oninput="updateSensor(${i}, this.value, 'slider')">
+                <input type="range" id="slider${i}" min="${min}" max="${max}" step="0.01" value="${sensors[i]}" oninput="updateSensor(${i}, this.value, 'slider')">
                 <input type="number" id="val${i}" step="0.01" value="${sensors[i].toFixed(2)}" oninput="updateSensor(${i}, this.value, 'number')">
             `;
             listEl.appendChild(li);
@@ -108,7 +147,8 @@
 
     function updateArrayView(source) {
         if (source === 'internal') {
-            const text = '[\n  ' + sensors.map(s => s.toFixed(2)).join(', ') + '\n]';
+            const normalized = getNormalizedSensors();
+            const text = '// Normalized values (UI / Divisor):\n[\n  ' + normalized.map(s => s.toFixed(4)).join(', ') + '\n]';
             arrayView.value = text;
         }
     }
@@ -224,7 +264,10 @@
             const response = await fetch('/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ features: sensors, word_buffer: wordBuffer })
+                body: JSON.stringify({ 
+                    features: getNormalizedSensors(), 
+                    word_buffer: wordBuffer 
+                })
             });
             
             if (!response.ok) {
