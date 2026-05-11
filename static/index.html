@@ -13,8 +13,8 @@
         .sensor-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f9f9f9; }
         .sensor-item label { width: 100px; font-weight: bold; font-size: 0.85em; color: #555; }
         .sensor-item input[type=range] { flex: 1; margin: 0 10px; }
-        .sensor-item input[type=number] { width: 60px; text-align: right; font-family: monospace; font-size: 0.9em; background: #eee; padding: 2px 5px; border: 1px solid #ccc; border-radius: 3px; }
-        .array-view { background: #1e1e1e; color: #4af626; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 0.9em; word-wrap: break-word; line-height: 1.6; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .sensor-item input[type=number] { width: 70px; text-align: right; font-family: monospace; font-size: 0.9em; background: #eee; padding: 2px 5px; border: 1px solid #ccc; border-radius: 3px; }
+        .array-view { background: #1e1e1e; color: #4af626; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 0.9em; width: 100%; height: 100px; resize: none; border: none; outline: none; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
         .btn { background: #007bff; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1em; width: 100%; margin-bottom: 10px; transition: background 0.2s; }
         .btn:hover { background: #0056b3; }
         .btn-secondary { background: #6c757d; }
@@ -38,8 +38,8 @@
     </div>
     
     <div class="panel">
-        <h2>Raw Features Array</h2>
-        <div class="array-view" id="arrayView">[0.0, 0.0, ...]</div>
+        <h2>Raw Features Array (Edit/Paste)</h2>
+        <textarea class="array-view" id="arrayView" oninput="updateFromText(this.value)">[0.0, 0.0, ...]</textarea>
 
 
         
@@ -82,25 +82,53 @@
             // MPUs map from -2g to +2g or similar. We use -30 to +30 as a general sandbox.
             li.innerHTML = `
                 <label>${name}</label>
-                <input type="range" id="slider${i}" min="-30" max="30" step="0.01" value="${sensors[i]}" oninput="updateSensor(${i}, this.value)">
-                <input type="number" id="val${i}" step="0.01" value="${sensors[i].toFixed(2)}" oninput="updateSensor(${i}, this.value)">
+                <input type="range" id="slider${i}" min="-30" max="30" step="0.01" value="${sensors[i]}" oninput="updateSensor(${i}, this.value, 'slider')">
+                <input type="number" id="val${i}" step="0.01" value="${sensors[i].toFixed(2)}" oninput="updateSensor(${i}, this.value, 'number')">
             `;
             listEl.appendChild(li);
         });
         updateArrayView();
     }
 
-    function updateSensor(i, val) {
-        sensors[i] = parseFloat(val);
-        const slider = document.getElementById(`slider${i}`);
-        const numInput = document.getElementById(`val${i}`);
-        if(slider && slider.value !== val) slider.value = val;
-        if(numInput && numInput.value !== val) numInput.value = val;
-        updateArrayView();
+    function updateSensor(i, val, source) {
+        sensors[i] = parseFloat(val) || 0.0;
+        
+        // Only update the UI elements that AREN'T the source of the change
+        if (source !== 'slider') {
+            const slider = document.getElementById(`slider${i}`);
+            if (slider) slider.value = sensors[i];
+        }
+        if (source !== 'number') {
+            const numInput = document.getElementById(`val${i}`);
+            if (numInput) numInput.value = sensors[i].toFixed(2);
+        }
+        
+        updateArrayView('internal');
     }
 
-    function updateArrayView() {
-        arrayView.innerText = '[\n  ' + sensors.map(s => s.toFixed(2)).join(', ') + '\n]';
+    function updateArrayView(source) {
+        if (source === 'internal') {
+            const text = '[\n  ' + sensors.map(s => s.toFixed(2)).join(', ') + '\n]';
+            arrayView.value = text;
+        }
+    }
+
+    function updateFromText(val) {
+        try {
+            // Try to extract numbers from the string (handles brackets, commas, spaces)
+            const matches = val.match(/-?\d+(\.\d+)?/g);
+            if (matches && matches.length >= 22) {
+                matches.slice(0, 22).forEach((num, i) => {
+                    sensors[i] = parseFloat(num);
+                    const slider = document.getElementById(`slider${i}`);
+                    const numInput = document.getElementById(`val${i}`);
+                    if (slider) slider.value = sensors[i];
+                    if (numInput) numInput.value = sensors[i].toFixed(2);
+                });
+            }
+        } catch (e) {
+            console.error("Parse error", e);
+        }
     }
 
     function loadExampleData() {
