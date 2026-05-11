@@ -83,7 +83,7 @@
         </div>
         
         <button class="btn" onclick="makePrediction()">Send to API / Predict</button>
-        <button class="btn btn-secondary" onclick="loadExampleData()">Generate Random Noise</button>
+        <button class="btn btn-secondary" onclick="loadExampleData()">Generate Random Valid Gesture</button>
         <button class="btn btn-danger" onclick="resetData()">Reset to Zeros</button>
 
         <div class="result-box">
@@ -140,11 +140,30 @@
     }
 
     function loadExampleData() {
-        // Generates random noise to show how the array updates
+        // Pick a random predefined sign from the dictionary
+        const signKeys = Object.keys(preDefinedSigns);
+        const randomKey = signKeys[Math.floor(Math.random() * signKeys.length)];
+        const baseValues = preDefinedSigns[randomKey];
+
+        // Update the dropdown to show what was picked
+        document.getElementById('signSelect').value = randomKey;
+
         for (let i = 0; i < 22; i++) {
-            sensors[i] = parseFloat((Math.random() * 4 - 2).toFixed(1));
+            // Add realistic noise to simulate an imperfect human gesture
+            // Flex sensors (0-9) get +/- 0.1 noise, MPUs (10-21) get +/- 1.0 noise
+            let noiseAmt = (i < 10) ? 0.1 : 1.0; 
+            let noise = (Math.random() * (noiseAmt * 2)) - noiseAmt;
+            
+            sensors[i] = parseFloat((baseValues[i] + noise).toFixed(2));
+            
+            const slider = document.getElementById(`slider${i}`);
+            if (slider) slider.value = sensors[i];
+            
+            const span = document.getElementById(`val${i}`);
+            if (span) span.innerText = sensors[i].toFixed(1);
         }
-        renderList();
+        updateArrayView();
+        makePrediction(); // Auto-predict it
     }
 
     function resetData() {
